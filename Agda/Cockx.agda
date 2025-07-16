@@ -1,3 +1,5 @@
+-- Agda is too powerful, which is bad for beginners.
+
 module Cockx where
 
 data Greeting : Set where
