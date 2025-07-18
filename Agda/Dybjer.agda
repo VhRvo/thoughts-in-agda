@@ -85,7 +85,7 @@ module Logic where
   comm-& (< x , y >) = < y , x >
 
   data ⊤ : Set where
-    <> : ⊤
+    tt : ⊤
 
   data ⊥ : Set where
 
@@ -223,6 +223,7 @@ module Nat where
   natInd base _    zero     = base
   natInd base step (succ n) = step n (natInd base step n)
 
+  -- Peano's axioms
   peano-3-axiom : {m n : Nat} → succ m ≡ succ n → m ≡ n
   peano-3-axiom refl = refl
 
@@ -236,6 +237,21 @@ module Nat where
   -- when checking that the pattern refl has type zero ≡ succ n
   peano-4-axiom : {n : Nat} → zero ≡ succ n → ⊥
   peano-4-axiom ()
+
+  subst→peano-3-axiom : {m n : Nat} → succ m ≡ succ n → m ≡ n
+  subst→peano-3-axiom {m} {_} p = subst {P = λ k → pred (succ m) ≡ pred k} p refl
+    where
+      pred : Nat → Nat
+      pred zero = zero
+      pred (succ n) = n
+
+  subst→peano-4-axiom : {n : Nat} → zero ≡ succ n → ⊥
+  subst→peano-4-axiom p = subst {P = case′} p tt
+    where
+      case′ : Nat → Set
+      case′ zero     = ⊤
+      case′ (succ _) = ⊥
+
 
   associativity-plus-ind : (m n p : Nat) → ((m + n) + p) ≡ (m + (n + p))
   associativity-plus-ind m n p =
