@@ -24,8 +24,25 @@ module Eq2 where
     symm : ∀ {A : Set} {x y : A} → x ≡ y → y ≡ x
     symm {_} {x} {.x} refl = refl
 
+    sym : ∀ {A : Set} (x y : A) → x ≡ y → y ≡ x
+    sym {_} x .x refl = refl
+
+    trans : {A : Set} {x y z : A} → x ≡ y → y ≡ z → x ≡ z
+    trans {_} {x} {.x} {.x} refl refl = refl
+
+    subst : {A : Set} → {P : A → Set} → {x y : A} → x ≡ y → P x → P y
+    subst {_} {_} {x} {.x} refl p = p
+
+    cong : {A B : Set} → {x y : A} → (f : A → B) → x ≡ y → f x ≡ f y
+    cong {_} {_} {x} {.x} f refl = refl
+
+    sym′ : ∀ {A : Set} (x y : A) → x ≡ y → y ≡ x
+    sym′ x y p = subst {P = λ z → z ≡ x} p refl
+
+    trans′ : {A : Set} {x y z : A} → x ≡ y → y ≡ z → x ≡ z
+    trans′ {x = x} p q = subst {P = x ≡_} q p
+
+    cong′ : {A B : Set} → {x y : A} → (f : A → B) → x ≡ y → f x ≡ f y
+    cong′ {x = x} f p = subst {P = λ z → f x ≡ f z} p refl
 
 
-Fibrational Induction Rules for Initial Algebras 
-
-Neil Ghani, Patricia Johann, and Cl´ement Fumex

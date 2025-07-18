@@ -225,6 +225,9 @@ absurd : {A : Set} → ⊥ → A
 absurd ()
 
 module curry-howard where
+  _ : {P : Set} → P → P
+  _ = λ p → p
+
   proof1 : {P : Set} → P → P
   proof1 p = p
 
