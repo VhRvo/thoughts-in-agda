@@ -147,6 +147,11 @@ lookupVec : {A : Set} {n : Nat} → Vec A n → Fin n → A
 lookupVec (x :: xs) zero = x
 lookupVec (x :: xs) (suc i) = lookupVec xs i
 
+lookupVec' : {A : Set} {n : Nat} → Vec A n → Fin n → A
+lookupVec' [] ()
+lookupVec' (x :: xs) zero = x
+lookupVec' (x :: xs) (suc i) = lookupVec' xs i
+
 lookupVec′ : {A : Set} {n : Nat} → Vec A n → Fin n → A
 lookupVec′ {_} {suc n} (x :: xs) zero = x
 lookupVec′ {_} {suc n} (x :: xs) (suc i) = lookupVec′ xs i
