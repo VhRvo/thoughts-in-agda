@@ -111,11 +111,11 @@ module Logic where
   em→dn (inl x)  _ = x
   em→dn (inr nx) f = nocase (f nx)
 
-  ¬¬em : {A : Set} → ¬ (¬ (A ⋁ ¬ A))
-  ¬¬em ¬em = ¬em (inr (λ x → ¬em (inl x)))
+  em-irrefutable : {A : Set} → ¬ (¬ (A ⋁ ¬ A))
+  em-irrefutable ¬em = ¬em (inr (λ x → ¬em (inl x)))
 
   dn→em : ((X : Set) → ¬ (¬ X) → X) → (A : Set) → (A ⋁ ¬ A)
-  dn→em dn A = dn _ (λ ¬em → ¬em (inr (λ x → ¬em (inl x))))
+  dn→em dn A = dn _ em-irrefutable
 
   data ∃ (A : Set) (P : A → Set) : Set where
     <_,_> : (a : A) → P a → ∃ A P
