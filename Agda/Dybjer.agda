@@ -111,6 +111,9 @@ module Logic where
   em→dn (inl x)  _ = x
   em→dn (inr nx) f = nocase (f nx)
 
+  ¬¬em : {A : Set} → ¬ (¬ (A ⋁ ¬ A))
+  ¬¬em ¬em = ¬em (inr (λ x → ¬em (inl x)))
+
   dn→em : ((X : Set) → ¬ (¬ X) → X) → (A : Set) → (A ⋁ ¬ A)
   dn→em dn A = dn _ (λ ¬em → ¬em (inr (λ x → ¬em (inl x))))
 
@@ -148,15 +151,22 @@ module Nat where
   one = succ zero
   two = succ one
 
+  -- _+_ : Nat → Nat → Nat
+  -- m + zero = m
+  -- m + succ n = succ (m + n)
   _+_ : Nat → Nat → Nat
-  m + zero = m
-  m + succ n = succ (m + n)
+  zero + m = m
+  succ n + m = succ (n + m)
+
+  _+′_ : Nat → Nat → Nat
+  m +′ zero = m
+  m +′ succ n = succ (m +′ n)
 
   infixl 60 _+_
 
   _*_ : Nat → Nat → Nat
-  m * zero = zero
-  m * succ n = m + (m * n)
+  zero * n = zero
+  succ m * n = n + (m * n)
 
   infixl 70 _*_
 
@@ -210,9 +220,12 @@ module Nat where
   ...             | zero = false
   ...             | succ n = m ==″ n
 
+  -- associativity-plus : (m n p : Nat) → ((m + n) + p) ≡ (m + (n + p))
+  -- associativity-plus m n zero = refl
+  -- associativity-plus m n (succ p) = cong succ (associativity-plus m n p)
   associativity-plus : (m n p : Nat) → ((m + n) + p) ≡ (m + (n + p))
-  associativity-plus m n zero = refl
-  associativity-plus m n (succ p) = cong succ (associativity-plus m n p)
+  associativity-plus zero n p = refl
+  associativity-plus (succ m) n p = cong succ (associativity-plus m n p)
 
   natInd :
       {P : Nat → Set}
@@ -255,10 +268,10 @@ module Nat where
 
   associativity-plus-ind : (m n p : Nat) → ((m + n) + p) ≡ (m + (n + p))
   associativity-plus-ind m n p =
-    natInd {λ p → ((m + n) + p) ≡ (m + (n + p))}
+    natInd {λ m → ((m + n) + p) ≡ (m + (n + p))}
       refl
       (λ n r → cong succ r)
-      p
+      m
 
 id : (X : Set) → X → X
 id X x = x
@@ -280,8 +293,6 @@ K x _ = x
 
 S : {X Y Z : Set} → (X → Y → Z) → (X -> Y) → X → Z
 S f g x = f x (g x)
-
-
 
 open Bool
 open Eq
@@ -325,5 +336,3 @@ open _×′_
 
 uncurry : {A B C : Set} → (A → B → C) → A × B → C
 uncurry f < x , y > = f x y
-
-

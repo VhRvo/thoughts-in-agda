@@ -1,6 +1,10 @@
 module Eq where
 
 import Relation.Binary.PropositionalEquality as Eq
+open import Relation.Binary
+
+-- a = Symmetric
+
 -- open Eq using (_≡_; refl)
 
 -- data Nat : Set where
