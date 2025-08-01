@@ -2,6 +2,8 @@ module Eq where
 
 import Relation.Binary.PropositionalEquality as Eq
 open import Relation.Binary
+-- import Eq.≡-Reasoning
+open Eq.≡-Reasoning
 
 -- a = Symmetric
 

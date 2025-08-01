@@ -317,6 +317,12 @@ snd < _ , b > = b
 ×-inj″ : {A B : Set} → (p1 p2 : A × B) → p1 ≡ p2 → (fst p1 ≡ fst p2) & (snd p1 ≡ snd p2)
 ×-inj″ _ _ refl = < refl , refl >
 
+×-inj‴ : {A B : Set} → (p1 : A × B) → p1 ≡ < fst p1 , snd p1 >
+×-inj‴ < a , b > = refl
+
+-- ×-inj⁗ : {A B : Set} → (p1 : A × B) → p1 ≡ < fst p1 , snd p1 >
+-- ×-inj⁗ _ = refl
+
 record _×′_ (A B : Set) : Set where
   constructor <_,_>′
   field
@@ -333,6 +339,9 @@ open _×′_
 
 ×′-inj″ : {A B : Set} → (p1 p2 : A ×′ B) → p1 ≡ p2 → (l1 p1 ≡ l1 p2) & (l2 p1 ≡ l2 p2)
 ×′-inj″ _ _ refl = < refl , refl >
+
+×′-inj‴ : {A B : Set} → (p1 : A ×′ B) → p1 ≡ < l1 p1 , l2 p1 >′
+×′-inj‴ _ = refl
 
 uncurry : {A B C : Set} → (A → B → C) → A × B → C
 uncurry f < x , y > = f x y
