@@ -345,3 +345,5 @@ open _×′_
 
 uncurry : {A B C : Set} → (A → B → C) → A × B → C
 uncurry f < x , y > = f x y
+
+_ = (λ x → x + 2) 2
