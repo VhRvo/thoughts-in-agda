@@ -85,13 +85,21 @@ module IsDoubleOf where
     ind Motive baseCase stepCase (step x) = stepCase (ind Motive baseCase stepCase x)
 
     1isNotDoubleOf0′ : 1 isDoubleOf 0 → ⊥
-    1isNotDoubleOf0′ proof = ind (\m n → (m ≡ 1 × n ≡ 0) → ⊥) baseCase  stepCase proof ( refl , refl )
+    1isNotDoubleOf0′ proof = ind (\m n → (m ≡ 1 × n ≡ 0) → ⊥) baseCase stepCase proof ( refl , refl )
         where
             baseCase : (0 ≡ 1 × 0 ≡ 0) → ⊥
             baseCase (() , _)
 
             stepCase : {m n : ℕ} → ((m ≡ 1) × (n ≡ 0) → ⊥) → ((suc (suc m)) ≡ 1 × (suc n) ≡ 0) → ⊥
             stepCase ih (() , ())
+
+    1isNotDoubleOf0″ : 1 isDoubleOf 0 → ⊥
+    1isNotDoubleOf0″ p = ind D tt (λ _ → tt) p
+        where
+            D : ℕ → ℕ → Set
+            D 0 _ = ⊤
+            D (suc _) 0 = ⊥
+            D (suc _) (suc _) = ⊤
 
 module Single where
     data Odd : ℕ → Set where
