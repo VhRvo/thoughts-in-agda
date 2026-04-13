@@ -78,19 +78,19 @@ infix 4 _≤_
 --   - GitHub Issue #2426：https://github.com/agda/agda/issues/2426
 
 -- [案例 1] 顶层定义：Agda 报 missing cases（缺少 Di (suc zero) _）
-Di : ℕ → ℕ → Set
-Di 0 _ = ⊤
-Di (suc (suc _)) 0 = ⊥
-Di (suc (suc _)) (suc _) = ⊤
+-- Di : ℕ → ℕ → Set
+-- Di 0 _ = ⊤
+-- Di (suc (suc _)) 0 = ⊥
+-- Di (suc (suc _)) (suc _) = ⊤
 
--- [案例 2] where 子句，外层类型 Di 0 0 = ⊤ 非空：Agda 报 missing cases（缺少 Dj (suc zero) _）
-dj : Di 0 0
-dj = tt
-  where
-    Dj : ℕ → ℕ → Set
-    Dj 0 _ = ⊤
-    Dj (suc (suc _)) 0 = ⊥
-    Dj (suc (suc _)) (suc _) = ⊤
+-- -- [案例 2] where 子句，外层类型 Di 0 0 = ⊤ 非空：Agda 报 missing cases（缺少 Dj (suc zero) _）
+-- dj : Di 0 0
+-- dj = tt
+--   where
+--     Dj : ℕ → ℕ → Set
+--     Dj 0 _ = ⊤
+--     Dj (suc (suc _)) 0 = ⊥
+--     Dj (suc (suc _)) (suc _) = ⊤
 
 module IsDoubleOf where
     open import Agda.Builtin.Equality
@@ -184,11 +184,201 @@ module Mutual where
     data Odd where
         step : {n : ℕ} → Even n → Odd (suc n)
 
-data _≡_ : ℕ → ℕ → Set where
-    base : 0 ≡ 0
-    step : {m : ℕ} → {n : ℕ} → m ≡ n → suc m ≡ suc n
+module NatEq where
+    data _≡_ : ℕ → ℕ → Set where
+        base : 0 ≡ 0
+        step : {m : ℕ} → {n : ℕ} → m ≡ n → suc m ≡ suc n
 
-data _≢_ : ℕ → ℕ → Set where
-    base1 : {n : ℕ} → suc n ≢ zero
-    base2 : {n : ℕ} → zero ≢ suc n
-    step : {m n : ℕ} → m ≢ n → suc m ≢ suc n
+    data _≢_ : ℕ → ℕ → Set where
+        base1 : {n : ℕ} → suc n ≢ zero
+        base2 : {n : ℕ} → zero ≢ suc n
+        step : {m n : ℕ} → m ≢ n → suc m ≢ suc n
+
+module PlusEqExplicitEliminator where
+    open import Agda.Builtin.Equality
+
+    data _+_≡_ : ℕ → ℕ → ℕ → Set where
+        base : ∀ {n} → zero + n ≡ n
+        step : ∀ {m n k} → m + n ≡ k → suc m + n ≡ suc k
+
+    ind :
+        (Motive : ℕ → ℕ → ℕ → Set) →
+        (baseCase : (n : ℕ) → Motive 0 n n) →
+        (stepCase : (m n k : ℕ) → Motive m n k → Motive (suc m) n (suc k)) →
+        {m n k : ℕ} →
+        m + n ≡ k →
+        Motive m n k
+    ind Motive baseCase stepCase (base {n}) = baseCase n
+    ind Motive baseCase stepCase (step {m} {n} {k} x) = stepCase m n k (ind Motive baseCase stepCase x)
+
+    5+5≡10 : 5 + 5 ≡ 10
+    5+5≡10 = step (step (step (step (step base))))
+
+    2+2≠5 : (2 + 2 ≡ 5) → ⊥
+    2+2≠5 (step (step ()))
+
+    0+2≠3 : (0 + 2 ≡ 3) → ⊥
+    0+2≠3 x = ind Motive baseCase stepCase x ( (λ ()) , refl)
+      where
+        Motive : ℕ → ℕ → ℕ → Set
+        Motive m n k = ((n ≡ k → ⊥) × m ≡ 0) → ⊥
+
+        baseCase : (n : ℕ) → Motive 0 n n
+        baseCase _ ( p1 , _ ) = p1 refl
+
+        stepCase : (m n k : ℕ) → Motive m n k → Motive (suc m) n (suc k)
+        stepCase _ _ _ _ ( _ , () )
+
+    0+2≠3′ : (0 + 2 ≡ 3) → ⊥
+    0+2≠3′ x = ind Motive baseCase stepCase x
+      where
+        Motive : ℕ → ℕ → ℕ → Set
+        Motive 0 0 0 = ⊤
+        Motive 0 (suc n) 0 = ⊥
+        Motive 0 0 (suc k) = ⊥
+        Motive 0 (suc n) (suc k) = Motive 0 n k
+        Motive (suc _) _ _ = ⊤
+
+        baseCase : ∀ n → Motive 0 n n
+        baseCase zero = tt
+        baseCase (suc n) = baseCase n
+
+        stepCase : (m n k : ℕ) → Motive m n k → Motive (suc m) n (suc k)
+        stepCase _ _ _ _ = tt
+
+    -- 方法三：把"自然数相等判定"抽取为独立函数 natEq，让 Motive 结构一目了然
+    --
+    -- 对比 0+2≠3′：那里 Motive 的前 4 个 case 本质上就是在"内联"natEq，
+    -- 把比较逻辑和 motive 选择混在一起，不易看出意图。
+    --
+    -- 这里的思路：
+    --   natEq n k = "n 与 k 计算上是否相等"（⊤ 或 ⊥）
+    --   Motive 0 n k = natEq n k   -- base case 归约为 natEq n n，只需证 natEqRefl
+    --   Motive (suc _) _ _ = ⊤     -- step case 平凡
+    --
+    -- 为什么不能像 isDoubleOf 那样用非递归 motive？
+    --   isDoubleOf 的 base 构造子是 base : 0 isDoubleOf 0（索引固定为具体值），
+    --   所以 motive 对 (0, 0) 返回 ⊤ 即可——不需要对任意 n 成立。
+    --   但 _+_≡_ 的 base 构造子是 base : ∀ {n} → 0 + n ≡ n（索引含全称量化的 n），
+    --   baseCase 必须证 ∀ n → Motive 0 n n，这要求 motive 在整条对角线上都为 ⊤，
+    --   同时在 (2,3) 处为 ⊥——这在计算上不可避免地需要逐层剥离 suc 来区分。
+    0+2≠3″ : (0 + 2 ≡ 3) → ⊥
+    0+2≠3″ x = ind Motive baseCase stepCase x
+      where
+        natEq : ℕ → ℕ → Set
+        natEq 0       0       = ⊤
+        natEq (suc m) (suc n) = natEq m n
+        natEq _       _       = ⊥
+
+        natEqRefl : ∀ n → natEq n n
+        natEqRefl zero    = tt
+        natEqRefl (suc n) = natEqRefl n
+
+        Motive : ℕ → ℕ → ℕ → Set
+        Motive 0       n k = natEq n k
+        Motive (suc _) _ _ = ⊤
+
+        baseCase : ∀ n → Motive 0 n n    -- 即 natEq n n
+        baseCase = natEqRefl
+
+        stepCase : (m n k : ℕ) → Motive m n k → Motive (suc m) n (suc k)
+        stepCase _ _ _ _ = tt
+
+
+module PlusEq where
+    open import Agda.Builtin.Equality
+    open PlusEqExplicitEliminator using (_+_≡_; base; step)
+
+    ind :
+        (Motive : ℕ → ℕ → ℕ → Set) →
+        (baseCase : ∀ {n} → Motive 0 n n) →
+        (stepCase : ∀ {m n k} → Motive m n k → Motive (suc m) n (suc k)) →
+        {m n k : ℕ} →
+        m + n ≡ k →
+        Motive m n k
+    ind Motive baseCase stepCase base = baseCase
+    ind Motive baseCase stepCase (step x) = stepCase (ind Motive baseCase stepCase x)
+
+    5+5≡10 : 5 + 5 ≡ 10
+    5+5≡10 = step (step (step (step (step base))))
+
+    2+2≠5 : (2 + 2 ≡ 5) → ⊥
+    2+2≠5 (step (step ()))
+
+    0+2≠3 : (0 + 2 ≡ 3) → ⊥
+    0+2≠3 x = ind Motive baseCase stepCase x ( (λ ()) , refl)
+      where
+        Motive : ℕ → ℕ → ℕ → Set
+        Motive m n k = ((n ≡ k → ⊥) × m ≡ 0) → ⊥
+
+        baseCase : {n : ℕ} → Motive 0 n n
+        baseCase ( p1 , _ ) = p1 refl
+
+        stepCase : {m n k : ℕ} → Motive m n k → Motive (suc m) n (suc k)
+        stepCase _ ( _ , () )
+
+    0+2≠3′ : (0 + 2 ≡ 3) → ⊥
+    0+2≠3′ x = ind Motive (λ {n} → baseCase {n}) (λ {m} {n} {k} → stepCase {m} {n} {k}) x
+      where
+        Motive : ℕ → ℕ → ℕ → Set
+        Motive 0 0 0 = ⊤
+        Motive 0 (suc n) 0 = ⊥
+        Motive 0 0 (suc k) = ⊥
+        Motive 0 (suc n) (suc k) = Motive 0 n k
+        Motive (suc _) _ _ = ⊤
+
+        baseCase : ∀ {n} → Motive 0 n n
+        baseCase {zero} = tt
+        baseCase {suc n} = baseCase {n}
+
+        stepCase : ∀ {m} {n} {k} → Motive m n k → Motive (suc m) n (suc k)
+        stepCase {m} {n} {k} _ = tt
+
+module Minimum where
+    data _⊓_≡_ : ℕ → ℕ → ℕ → Set where
+        base1 : ∀ {n} → 0 ⊓ n ≡ 0
+        base2 : ∀ {m} → suc m ⊓ 0 ≡ 0
+        step : ∀ {m n k} → m ⊓ n ≡ k → suc m ⊓ suc n ≡ suc k
+
+    3⊓5≡3 : 3 ⊓ 5 ≡ 3
+    3⊓5≡3 = step (step (step base1))
+
+    5⊓3≡3 : 5 ⊓ 3 ≡ 3
+    5⊓3≡3 = step (step (step base2))
+
+    3⊓5≡5 : (3 ⊓ 5 ≡ 5) → ⊥
+    3⊓5≡5 (step (step (step ())))
+
+module Maximum where
+    data _⊔_≡_ : ℕ → ℕ → ℕ → Set where
+        base1 : ∀ {n} → 0 ⊔ n ≡ n
+        base2 : ∀ {m} → suc m ⊔ 0 ≡ suc m
+        step : ∀ {m n k} → m ⊔ n ≡ k → suc m ⊔ suc n ≡ suc k
+
+    3⊔5≡5 : 3 ⊔ 5 ≡ 5
+    3⊔5≡5 = step (step (step base1))
+
+    5⊔3≡5 : 5 ⊔ 3 ≡ 5
+    5⊔3≡5 = step (step (step base2))
+
+    3⊔5≡3 : (3 ⊔ 5 ≡ 3) → ⊥
+    3⊔5≡3 (step (step (step ())))
+
+module IsDoubleOfOnPlusEq where
+    open PlusEqExplicitEliminator using (_+_≡_; base; step)
+
+    _isDoubleOf_ : ℕ → ℕ → Set
+    m isDoubleOf n = n + n ≡ m
+
+    8isDoubleOf4 : 8 isDoubleOf 4
+    8isDoubleOf4 = step (step (step (step base)))
+
+    9isNotDoubleOf4 : 9 isDoubleOf 4 → ⊥
+    9isNotDoubleOf4 (step (step (step (step ()))))
+
+module MultEqOnPlusEq where
+
+module Iso where
+    open import Sets.Recursive hiding (ℕ)
+
+    data _≈_ : ℕ → ℕ⁺ → Set where
