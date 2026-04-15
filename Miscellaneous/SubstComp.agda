@@ -27,7 +27,8 @@ open import Data.Maybe     using (Maybe; just; nothing; fromMaybe)
 import      Data.Maybe  as Maybe
 open import Data.List      using (List; []; _∷_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; cong; cong₂)
+  using (_≡_; refl; sym; trans; cong; cong₂; module ≡-Reasoning)
+open ≡-Reasoning
 
 -- ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -109,17 +110,42 @@ mutual
   subst-comp : ∀ (s1 s2 : Substitution) (t : Term)
              → subst (comp s1 s2) t ≡ subst s1 (subst s2 t)
 
-  subst-comp s1 s2 (Variable k) =
-    sym (trans
-      (fromMaybe-natural (subst s1) (Variable k) (s2 k))
-      (fromMaybe-<|>     (Variable k) (s1 k)     (Maybe.map (subst s1) (s2 k))))
+  -- Variable case: step-by-step equational reasoning
+  --
+  -- Goal:  fromMaybe (Variable k) (Maybe.map (subst s1) (s2 k) <|> s1 k)
+  --      ≡ subst s1 (fromMaybe (Variable k) (s2 k))
+  --
+  -- We reason backwards from the RHS to the LHS.
+  subst-comp s1 s2 (Variable k) = sym (begin
+      subst s1 (fromMaybe (Variable k) (s2 k))
+        -- ── unfold subst on Variable: subst s1 (Variable k) = fromMaybe (Variable k) (s1 k)
+        -- ── apply Axiom 1: f (fromMaybe d x) ≡ fromMaybe (f d) (fmap f x)
+    ≡⟨ fromMaybe-natural (subst s1) (Variable k) (s2 k) ⟩
+      fromMaybe (subst s1 (Variable k)) (Maybe.map (subst s1) (s2 k))
+        -- ── unfold subst s1 (Variable k) = fromMaybe (Variable k) (s1 k)
+        -- ── this is definitional, so refl
+    ≡⟨ refl ⟩
+      fromMaybe (fromMaybe (Variable k) (s1 k)) (Maybe.map (subst s1) (s2 k))
+        -- ── apply Axiom 3: fromMaybe (fromMaybe d x) y ≡ fromMaybe d (y <|> x)
+    ≡⟨ fromMaybe-<|> (Variable k) (s1 k) (Maybe.map (subst s1) (s2 k)) ⟩
+      fromMaybe (Variable k) (Maybe.map (subst s1) (s2 k) <|> s1 k)
+        -- ── fold comp: comp s1 s2 k = Maybe.map (subst s1) (s2 k) <|> s1 k
+        -- ── fold subst: subst (comp s1 s2) (Variable k) = fromMaybe (Variable k) (comp s1 s2 k)
+        -- ── both are definitional, so refl
+    ≡⟨ refl ⟩
+      subst (comp s1 s2) (Variable k)
+    ∎)
 
+  -- Predicate case: follows by congruence + mutual induction on subterms
   subst-comp s1 s2 (Predicate k ts) =
     cong (Predicate k) (substList-comp s1 s2 ts)
 
   substList-comp : ∀ (s1 s2 : Substitution) (ts : List Term)
                  → substList (comp s1 s2) ts ≡ substList s1 (substList s2 ts)
 
-  substList-comp s1 s2 []       = refl
-  substList-comp s1 s2 (t ∷ ts) =
-    cong₂ _∷_ (subst-comp s1 s2 t) (substList-comp s1 s2 ts)
+  substList-comp s1 s2 [] = refl
+  substList-comp s1 s2 (t ∷ ts) = begin
+      subst (comp s1 s2) t ∷ substList (comp s1 s2) ts
+    ≡⟨ cong₂ _∷_ (subst-comp s1 s2 t) (substList-comp s1 s2 ts) ⟩
+      subst s1 (subst s2 t) ∷ substList s1 (substList s2 ts)
+    ∎
